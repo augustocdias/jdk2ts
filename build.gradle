@@ -1,0 +1,87 @@
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+    dependencies {
+        classpath 'org.jsoup:jsoup:1.11.3'
+        classpath 'org.bsc.processor:java2ts-processor:1.0-beta2'
+    }
+}
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
+import java.io.PrintWriter;
+
+apply plugin: 'java'
+def javaVersion = project.hasProperty('javaVersion') ? project.property('javaVersion') : "8"
+
+repositories {
+	mavenCentral()
+}
+
+def getModules() {
+    def javaVersion = project.hasProperty('javaVersion') ? project.property('javaVersion') : "8"
+    def moduleArgs = []
+    if (javaVersion.toInteger() > 8) {
+        def doc = Jsoup.connect("https://docs.oracle.com/javase/${javaVersion}/docs/api/module-overview-frame.html").get()
+        def elements = doc.select(".indexContainer ul li a")
+        elements.each {
+            moduleArgs += "--add-modules"
+            moduleArgs += it.text()
+        }
+    }
+    return moduleArgs
+}
+
+task generatePackageInfo {
+    doFirst {
+        
+        mkdir "${rootProject.buildDir}/java/org/jdk2ts"
+        def doc = Jsoup.connect("https://docs.oracle.com/javase/${javaVersion}/docs/api/allclasses-frame.html").get()
+        def elements = doc.select(".indexContainer ul li a")
+        def text = new StringBuilder( "@Java2TS(declare = {")
+        elements.each {
+            def ext = it.attr("href").lastIndexOf(".html")
+            text.append("\n\t@Type(value=" + it.attr("href").replace("/", ".").substring(0, ext) + ".class, export=true),")
+        }
+        text.replace(text.lastIndexOf(","), text.length(), "\n})\npackage org.jdk2ts;\nimport org.bsc.processor.annotation.Java2TS;\nimport org.bsc.processor.annotation.Type;")
+
+        def writer = new PrintWriter("${rootProject.buildDir}/java/org/jdk2ts/package-info.java", "UTF-8")
+        writer.println(text.toString())
+        writer.close()
+    }
+}
+
+task generateTypeScript(type: JavaCompile, group: 'build', description: 'Generates the Typescript definition files') {
+    sourceSets {
+        jdk2ts {
+            java {
+                java.srcDirs = ["${rootProject.buildDir}/java/org/jdk2ts"]
+            }
+        }
+    }
+    source = sourceSets.jdk2ts.java // input source set
+    classpath = configurations.compile
+    // specify javac arguments
+    options.compilerArgs = [
+            "-Ats.outfile=jdk-${javaVersion}",
+            "-proc:only",
+            "-processor", "org.bsc.processor.TypescriptProcessor" 
+    ]
+    options.compilerArgs += getModules()
+
+
+    mkdir "${rootProject.buildDir}/ts/"
+    // specify output of generated code
+    destinationDir = file("${rootProject.buildDir}/ts/")
+}
+
+generateTypeScript.dependsOn generatePackageInfo
+
+dependencies {
+    compile "org.bsc.processor:java2ts-processor:1.0-beta2"
+}
+
+
+

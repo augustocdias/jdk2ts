@@ -1,0 +1,8 @@
+build
+.classpath
+.project
+.gradle
+.settings
+.sts4-cache
+.vscode
+*.jar
