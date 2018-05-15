@@ -8,10 +8,10 @@ buildscript {
     }
 }
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.select.Elements;
-import java.io.PrintWriter;
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
+import org.jsoup.select.Elements
+import java.io.PrintWriter
 
 apply plugin: 'java'
 def javaVersion = project.hasProperty('javaVersion') ? project.property('javaVersion') : "8"
@@ -42,8 +42,10 @@ task generatePackageInfo {
         def elements = doc.select(".indexContainer ul li a")
         def text = new StringBuilder( "@Java2TS(declare = {")
         elements.each {
-            def ext = it.attr("href").lastIndexOf(".html")
-            text.append("\n\t@Type(value=" + it.attr("href").replace("/", ".").substring(0, ext) + ".class, export=true),")
+            if (it.text() != "UNKNOWN" && !it.text().contains(".")) {
+                def ext = it.attr("href").lastIndexOf(".html")
+                text.append("\n\t@Type(value=" + it.attr("href").replace("/", ".").substring(0, ext) + ".class, export=true),")
+            }
         }
         text.replace(text.lastIndexOf(","), text.length(), "\n})\npackage org.jdk2ts;\nimport org.bsc.processor.annotation.Java2TS;\nimport org.bsc.processor.annotation.Type;")
 
@@ -80,7 +82,7 @@ task generateTypeScript(type: JavaCompile, group: 'build', description: 'Generat
 generateTypeScript.dependsOn generatePackageInfo
 
 dependencies {
-    compile "org.bsc.processor:java2ts-processor:1.0-beta2"
+    compile 'org.bsc.processor:java2ts-processor:1.0-beta2'
 }
 
 

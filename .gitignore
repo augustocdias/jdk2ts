@@ -6,3 +6,5 @@ build
 .sts4-cache
 .vscode
 *.jar
+.idea
+*.iml
