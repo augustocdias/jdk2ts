@@ -4,7 +4,7 @@ buildscript {
 	}
     dependencies {
         classpath 'org.jsoup:jsoup:1.11.3'
-        classpath 'org.bsc.processor:java2ts-processor:1.0-beta2'
+        classpath 'org.bsc.processor:java2ts-processor:1.0-rc1'
     }
 }
 
@@ -44,7 +44,9 @@ task generatePackageInfo {
         elements.each {
             if (it.text() != "UNKNOWN" && !it.text().contains(".")) {
                 def ext = it.attr("href").lastIndexOf(".html")
-                text.append("\n\t@Type(value=" + it.attr("href").replace("/", ".").substring(0, ext) + ".class, export=true),")
+                def annotation = "\n\t@Type(value=" + it.attr("href").replace("/", ".").substring(0, ext) + ".class, export=false),"
+                if (!annotation.contains("java.lang.Object.class"))//java.lang.Object does not work
+                    text.append(annotation)
             }
         }
         text.replace(text.lastIndexOf(","), text.length(), "\n})\npackage org.jdk2ts;\nimport org.bsc.processor.annotation.Java2TS;\nimport org.bsc.processor.annotation.Type;")
@@ -82,7 +84,8 @@ task generateTypeScript(type: JavaCompile, group: 'build', description: 'Generat
 generateTypeScript.dependsOn generatePackageInfo
 
 dependencies {
-    compile 'org.bsc.processor:java2ts-processor:1.0-beta2'
+    compile files('/Users/adias/projects/java2typescript/processor/target/java2ts-processor.jar')
+    compile 'org.bsc.processor:java2ts-processor:1.0-rc1'
 }
 
 
